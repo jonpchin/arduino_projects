@@ -6,15 +6,38 @@
 int bluetoothTx = 2;  // TX-O pin of bluetooth mate, Arduino D2
 int bluetoothRx = 3;  // RX-I pin of bluetooth mate, Arduino D3
 
-#define pwm_2 5
-#define pwm_1 7
-#define dir_2 4
-#define dir_1 6
+#define pwm_2 5 
+#define pwm_1 6 
+#define dir_2 4 
+#define dir_1 7
+
+
 
 SoftwareSerial bluetooth(bluetoothTx, bluetoothRx);
 
+struct BtMessage {
+    char type[32];
+    char speed[32];
+};
+
+struct BtMessage parseMessage(char message[])
+{
+    struct BtMessage btMessage;
+    strcpy(btMessage.type, strtok(message, "_"));
+    
+    if(strcmp(btMessage.type, NULL) != 0){
+        strcpy(btMessage.speed, strtok(NULL, "_"));
+    }
+    else
+    {
+        strcpy(btMessage.speed, "255");
+    }
+
+    return btMessage;
+}
+
 void setup() {
-    //Serial.begin(9600);  // Begin the serial monitor at 9600bps
+    Serial.begin(9600);  // Begin the serial monitor at 9600bps
     bluetooth.begin(115200);  // The Bluetooth Mate defaults to 115200bps
     bluetooth.print("$");  // Print three times individually
     bluetooth.print("$");
@@ -30,54 +53,95 @@ void setup() {
     pinMode(dir_2, OUTPUT);
 }
 
+// Limit max string size to 32 char
+void getMessage(char text[32])
+{
+    unsigned i=0;      /*array index variable */
+    /*character is received until end of the string received */
+
+    char letter = (char)bluetooth.read();
+    text[0] = letter;
+    i++;
+    
+    while(letter != '\0' && i<30)
+    {
+        if(bluetooth.available()){
+            letter = (char)bluetooth.read();
+            text[i]=letter;
+            i++;
+        }
+    }
+    text[i] = '\0';
+    //return text;   /* return the base address of received string */
+}
+
+
 void loop() {
+    
      if(bluetooth.available())  // If the bluetooth sent any characters
      {
-        // Send any characters the bluetooth prints to the serial monitor
-        char message = (char)bluetooth.read();
-
-        // TODO: Mini tank uses range 0-1023 instead of -255 and 255
-        if(message == 'U'){ //UP
-            digitalWrite(pwm_1,HIGH);
-            digitalWrite(pwm_2,HIGH);
-            analogWrite(dir_1, 255);
-            analogWrite(dir_2, 255);
-        }else if(message == 'S'){ //STOP
-            digitalWrite(pwm_1,LOW);
-            digitalWrite(pwm_2,LOW);
-        }else if(message == 'L'){ //LEFT SPIN
-            digitalWrite(pwm_1,HIGH);
-            digitalWrite(pwm_2,HIGH);
-            analogWrite(dir_1, 255);
-            analogWrite(dir_2,-255);
+        char message[32];
+        getMessage(message);
+        Serial.println("type is:");
+        Serial.println(message);
+        
+        struct BtMessage btMessage = parseMessage(message);
+        unsigned speed  = 255;
+        char *ptr;
+        
+       
+        if(strcmp(btMessage.type, "S") != 0){
+            speed = strtoul(btMessage.speed, &ptr, 10);
+            
         }
-        else if(message == 'R'){ // RIGHT SPIN
-            digitalWrite(pwm_1,HIGH);
-            digitalWrite(pwm_2,HIGH);
-            analogWrite(dir_1,-255);
-            analogWrite(dir_2,255);
-        } else if(message == 'B'){ //Backwards
+
+        
+        
+        if(strcmp(btMessage.type, "U") == 0){ //UP
+            digitalWrite(dir_1,HIGH);
+            digitalWrite(dir_2, HIGH);
+            analogWrite(pwm_1, speed);
+            analogWrite(pwm_2, speed);
+        }else if(strcmp(btMessage.type, "S") == 0){ //STOP
+            analogWrite(pwm_1,0);
+            analogWrite(pwm_2,0);
+        }else if(strcmp(btMessage.type, "L") == 0){ //LEFT SPIN
+            digitalWrite(dir_1,LOW);
+            digitalWrite(dir_2,HIGH);
+            analogWrite(pwm_1, speed);
+            analogWrite(pwm_2,speed);
+        }
+        else if(strcmp(btMessage.type, "R") == 0){ // RIGHT SPIN
+            digitalWrite(dir_1,HIGH);
+            digitalWrite(dir_2,LOW);
+            analogWrite(pwm_1, speed);
+            analogWrite(pwm_2, speed);
+        } else if(strcmp(btMessage.type, "B") == 0){ //Backwards
             //Serial.print("BACKWARDS");
-            digitalWrite(pwm_1,HIGH);
-            digitalWrite(pwm_2,HIGH);
-            analogWrite(dir_1, -255);
-            analogWrite(dir_2, -255);
-        }else if(message == '1'){ // top left
-            digitalWrite(pwm_1,HIGH);
+            digitalWrite(dir_1,LOW);
+            digitalWrite(dir_2,LOW);
+            analogWrite(pwm_1, speed);
+            analogWrite(pwm_2, speed);
+        }else if(strcmp(btMessage.type, "1") == 0){ // top left
+            digitalWrite(dir_1,HIGH);
+            //digitalWrite(dir_2,LOW);
+            analogWrite(pwm_1, speed);
+            analogWrite(pwm_2, 0);
+        }else if(strcmp(btMessage.type, "2") == 0){ // top right
+            //digitalWrite(dir_1,LOW);
+            digitalWrite(dir_2,HIGH);
+            analogWrite(pwm_2, 0);
+            analogWrite(pwm_2, speed);
+        }else if(strcmp(btMessage.type, "3") == 0){ // bottom left
+            digitalWrite(dir_1,LOW);
+            //digitalWrite(dir_2,LOW);
+            analogWrite(pwm_1,speed);
+            analogWrite(pwm_2,0);
+        }else if(strcmp(btMessage.type, "4") == 0){ // bottom right
+            //digitalWrite(pwm_1,LOW);
             digitalWrite(pwm_2,LOW);
-            analogWrite(dir_1, 255);
-        }else if(message == '2'){ // top right
-            digitalWrite(pwm_1,LOW);
-            digitalWrite(pwm_2,HIGH);
-            analogWrite(dir_2,255);
-        }else if(message == '3'){ // bottom left
-            digitalWrite(pwm_1,HIGH);
-            digitalWrite(pwm_2,LOW);
-            analogWrite(dir_1,-255);
-        }else if(message == '4'){ // bottom right
-            digitalWrite(pwm_1,LOW);
-            digitalWrite(pwm_2,HIGH);
-            analogWrite(dir_2,-255);
+            analogWrite(pwm_1,0);
+            analogWrite(pwm_2,speed);
         }
     }
 }
