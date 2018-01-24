@@ -115,16 +115,16 @@ void loop() {
             analogWrite(pwm_1,0);
             analogWrite(pwm_2,0);
         }else if(strcmp(btMessage.type, "L") == 0){ //LEFT SPIN
-            digitalWrite(dir_1,LOW);
-            digitalWrite(dir_2,HIGH);
-            analogWrite(pwm_1, speed);
-            analogWrite(pwm_2,speed);
-        }
-        else if(strcmp(btMessage.type, "R") == 0){ // RIGHT SPIN
             digitalWrite(dir_1,HIGH);
             digitalWrite(dir_2,LOW);
             analogWrite(pwm_1, speed);
             analogWrite(pwm_2, speed);
+        }
+        else if(strcmp(btMessage.type, "R") == 0){ // RIGHT SPIN
+            digitalWrite(dir_1,LOW);
+            digitalWrite(dir_2,HIGH);
+            analogWrite(pwm_1, speed);
+            analogWrite(pwm_2,speed);
         } else if(strcmp(btMessage.type, "B") == 0){ //Backwards
             //Serial.print("BACKWARDS");
             digitalWrite(dir_1,LOW);
@@ -148,7 +148,7 @@ void loop() {
             analogWrite(pwm_2,0);
         }else if(strcmp(btMessage.type, "4") == 0){ // bottom right
             //digitalWrite(pwm_1,LOW);
-            digitalWrite(pwm_2,LOW);
+            digitalWrite(dir_2,LOW);
             analogWrite(pwm_1,0);
             analogWrite(pwm_2,speed);
         }else if(strcmp(btMessage.type, "dist") == 0){ // toggles distance sesnor
