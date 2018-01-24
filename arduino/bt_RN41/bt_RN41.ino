@@ -11,7 +11,8 @@ int bluetoothRx = 3;  // RX-I pin of bluetooth mate, Arduino D3
 #define dir_2 4 
 #define dir_1 7
 
-
+#define sensor A0 // Sharp IR GP2Y0A41SK0F (4-30cm, analog)
+bool volatile sensorEnabled = false;
 
 SoftwareSerial bluetooth(bluetoothTx, bluetoothRx);
 
@@ -53,6 +54,18 @@ void setup() {
     pinMode(dir_2, OUTPUT);
 }
 
+void readDistanceSensor(){
+    // 5v
+    float volts = analogRead(sensor)*0.0048828125;  // value from sensor * (5/1024)
+    int distance = 13*pow(volts, -1); // worked out from datasheet graph 
+    delay(50);
+    if(distance > 0 && distance <=  7){
+        analogWrite(pwm_1,0);
+        analogWrite(pwm_2,0);
+        //Serial.println(distance);   // print the distance
+    } 
+}
+
 // Limit max string size to 32 char
 void getMessage(char text[32])
 {
@@ -70,11 +83,13 @@ void getMessage(char text[32])
             text[i]=letter;
             i++;
         }
+        if(sensorEnabled){
+            readDistanceSensor();
+        }
     }
     text[i] = '\0';
     //return text;   /* return the base address of received string */
 }
-
 
 void loop() {
     
@@ -82,21 +97,15 @@ void loop() {
      {
         char message[32];
         getMessage(message);
-        Serial.println("type is:");
-        Serial.println(message);
         
         struct BtMessage btMessage = parseMessage(message);
         unsigned speed  = 255;
         char *ptr;
         
-       
         if(strcmp(btMessage.type, "S") != 0){
-            speed = strtoul(btMessage.speed, &ptr, 10);
-            
+            speed = strtoul(btMessage.speed, &ptr, 10);         
         }
-
-        
-        
+ 
         if(strcmp(btMessage.type, "U") == 0){ //UP
             digitalWrite(dir_1,HIGH);
             digitalWrite(dir_2, HIGH);
@@ -142,7 +151,19 @@ void loop() {
             digitalWrite(pwm_2,LOW);
             analogWrite(pwm_1,0);
             analogWrite(pwm_2,speed);
+        }else if(strcmp(btMessage.type, "dist") == 0){ // toggles distance sesnor
+            sensorEnabled = !sensorEnabled;
+            if(sensorEnabled){
+                float volts = analogRead(sensor)*0.0048828125;  // value from sensor * (5/1024)
+                int distance = 13*pow(volts, -1); // worked out from datasheet graph 
+                bluetooth.print(distance);
+            }else{
+                bluetooth.print("Off");
+            }
         }
+    }
+    if(sensorEnabled){
+        readDistanceSensor();
     }
 }
 
