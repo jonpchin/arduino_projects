@@ -1,4 +1,4 @@
-#include <SoftwareSerial.h>  
+#include <SoftwareSerial.h>
 
 // To do wireless update over bluetooth, connect to robot with bluetooth, set baud rate to 19200,
 // then upload code and finally do a hardware reset(can be triggered soely by software)
@@ -58,8 +58,7 @@ void readDistanceSensor(){
     // 5v
     float volts = analogRead(sensor)*0.0048828125;  // value from sensor * (5/1024)
     int distance = 13*pow(volts, -1); // worked out from datasheet graph 
-    delay(50);
-    if(distance > 0 && distance <=  7){
+    if(distance > 0 && distance <=  15){
         analogWrite(pwm_1,0);
         analogWrite(pwm_2,0);
         //Serial.println(distance);   // print the distance
@@ -88,7 +87,6 @@ void getMessage(char text[32])
         }
     }
     text[i] = '\0';
-    //return text;   /* return the base address of received string */
 }
 
 void loop() {
@@ -162,6 +160,7 @@ void loop() {
             }
         }
     }
+    
     if(sensorEnabled){
         readDistanceSensor();
     }
