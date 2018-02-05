@@ -193,7 +193,8 @@ int main()
         
         char *ptr;
         
-        if(tank.messageType != "S"){
+		// Before it was  if(tank.messageType != "S"){, possible bug fix, need to test
+        if(strcmp(tank.messageType, "S") != 0){
             speed = strtoul(tank.speed, &ptr, 10);
         }
 
