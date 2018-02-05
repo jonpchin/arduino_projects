@@ -7,7 +7,7 @@ int bluetoothTx = 2;  // TX-O pin of bluetooth mate, Arduino D2
 int bluetoothRx = 3;  // RX-I pin of bluetooth mate, Arduino D3
 
 #define pwm_2 5 
-#define pwm_1 6 
+#define pwm_1 6  //AnalogWrite (for PWM) works only on pins 3, 5, 6, 9, 10, and 11 on Arduino Uno (Atmega328P)
 #define dir_2 4 
 #define dir_1 7
 
