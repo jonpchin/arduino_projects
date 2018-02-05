@@ -28,6 +28,18 @@ Servo selectedServo = servos[SERVO_BASE]; //default servo pin is base if none is
 
 ESP8266WebServer server(80);
 
+void detachServo(){
+    int i;
+    int total = sizeof(servos)/sizeof(servos[0]);
+    for(i=0; i<total; ++i){
+        servos[i].detach(); 
+    }
+}
+
+int getServoAngle(){
+    server.send(200, "text/html", String(selectedServo.read()));
+}
+
 /* Go to 192.168.4.1 in a web browser
  * connected to this access point to see it.
  */
@@ -80,30 +92,19 @@ void turnServo(){
 
         if(result >= 0 && result <= 180){
             selectedServo.write(result);
-            server.send(200, "text/html", "<h1>" + getServoPinName(servoPin) +" servo is turning " + server.arg("degrees") +"</h1>");
+            //server.send(200, "text/html", "<h1>" + getServoPinName(servoPin) +" servo is turning " + server.arg("degrees") +"</h1>");
         }
-        else
-        {
-            server.send(200, "text/html", "<h1>Invalid degrees of " + String(result) +"</h1>");
-        }
+        //else
+        //{
+        //    server.send(200, "text/html", "<h1>Invalid degrees of " + String(result) +"</h1>");
+       // }
         
-    }else
-    {
-         server.send(200, "text/html", "<h1>"+ getServoPinName(servoPin) + " servo is missing degrees.</h1>");
-    } 
+    }//else
+    //{
+    //     server.send(200, "text/html", "<h1>"+ getServoPinName(servoPin) + " servo is missing degrees.</h1>");
+    //} 
 }
 
-int getServoAngle(){
-    server.send(200, "text/html", String(selectedServo.read()));
-}
-
-void detachServo(){
-    int i;
-    int total = sizeof(servos)/sizeof(servos[0]);
-    for(i=0; i<total; ++i){
-        servos[i].detach(); 
-    }
-}
 void setup() {
     Serial.begin(9600);
     Serial.println();
@@ -122,7 +123,7 @@ void setup() {
     server.on("/getservoangle", getServoAngle);
 
     server.begin();
-    Serial.println("HTTP server started");
+    //Serial.println("HTTP server started");
 }
 
 void loop() {
