@@ -19,13 +19,13 @@
 
 class MotorService {
 public:
-    const static uint16_t MOTOR_SERVICE_UUID                  = 0xB000;
-    const static uint16_t MOTOR_DIRECTION_CHARACTERISTIC_UUID = 0xB001;
-    const static uint16_t MOTOR_SPEED_CHARACTERISTIC_UUID     = 0xB002;
+    const static uint16_t MOTOR_SERVICE_UUID                  = 0xA000;
+    const static uint16_t MOTOR_DIRECTION_CHARACTERISTIC_UUID = 0xA001;
+    const static uint16_t MOTOR_SPEED_CHARACTERISTIC_UUID     = 0xA002;
 
-    PWMService(BLEDevice &_ble, int initialValueForMotorDirectionCharacteristic, float initialValueForMotorSpeedCharacteristic) :
-        ble(_ble), motorDirection(MOTOR_DIRECTION_CHARACTERISTIC_UUID, &initialValueForMotorDirectionCharacteristic,
-        motorSpeed(MOTOR_SPEED_CHARACTERISTIC_UUID, initialValueForMotorSpeedCharacteristic)
+    MotorService(BLEDevice &_ble, int initialValueForMotorDirectionCharacteristic, int initialValueForMotorSpeedCharacteristic) :
+        ble(_ble), motorDirection(MOTOR_DIRECTION_CHARACTERISTIC_UUID, &initialValueForMotorDirectionCharacteristic),
+        motorSpeed(MOTOR_SPEED_CHARACTERISTIC_UUID, &initialValueForMotorSpeedCharacteristic)
     {
         GattCharacteristic *charTable[] = {&motorDirection, &motorSpeed};
         GattService         motorService(MOTOR_SERVICE_UUID, charTable, sizeof(charTable) / sizeof(GattCharacteristic *));
@@ -33,7 +33,7 @@ public:
     }
     
     GattAttribute::Handle_t getDirectionHandle() const {
-        return motorSpeed.getValueHandle();
+        return motorDirection.getValueHandle();
     }
     
     GattAttribute::Handle_t getSpeedHandle() const {
@@ -43,7 +43,7 @@ public:
 private:
     BLEDevice                         &ble;
     ReadWriteGattCharacteristic<int>  motorDirection;
-    ReadWriteGattCharacteristic<float>  motorSpeed;
+    ReadWriteGattCharacteristic<int>  motorSpeed; // Will divide by 100.0 to get float
 };
 
 #endif /* #ifndef __BLE_MOTOR_SERVICE_H__ */

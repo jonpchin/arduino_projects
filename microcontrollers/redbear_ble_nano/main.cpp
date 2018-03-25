@@ -1,22 +1,12 @@
-/* mbed Microcontroller Library
- * Copyright (c) 2006-2013 ARM Limited
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+/* Jonathan Chin
+ * Light Seeker bluetooth controlled robot that can detect levels of light
+ * 3/25/18
  */
 
 #include "mbed.h"
 #include "ble/BLE.h"
 #include "MotorService.h"
+#include "SensorService.h"
 
 DigitalOut alivenessLED(LED1, 0);
 
@@ -24,6 +14,8 @@ const static char     DEVICE_NAME[] = "Light Seeker";
 static const uint16_t uuid16_list[] = {MotorService::MOTOR_SERVICE_UUID};
 
 MotorService *motorServicePtr;
+SensorService *sensorServiePtr;
+Ticker ticker;
 
 // PWM is speed and gpio controls direction, mode toggles PHASE/ENABLE or IN/IN
 mbed::PwmOut pwm_b(P0_8);
@@ -31,9 +23,10 @@ mbed::DigitalOut gpio_b(P0_11);
 mbed::PwmOut pwm_a(P0_9);
 mbed::DigitalOut gpio_a(P0_10);
 mbed::DigitalOut mode_pin(P0_5);
+mbed::AnalogIn light_sensor(P0_4); // Used by photoresistor to detect levels of light in room
 float motorSpeed = 0;
 
-enum Directions{NORTH, EAST, SOUTH, WEST, NORTHEAST, SOUTHEAST, SOUTHWEST, NORTHWEST};
+enum Directions{NORTH, EAST, SOUTH, WEST, NORTHEAST, SOUTHEAST, SOUTHWEST, NORTHWEST, STOP};
 
 void disconnectionCallback(const Gap::DisconnectionCallbackParams_t *params)
 {
@@ -41,6 +34,11 @@ void disconnectionCallback(const Gap::DisconnectionCallbackParams_t *params)
 }
 
 void toggleLED(void)
+{
+    alivenessLED = !alivenessLED; /* Do blinky on LED1 to indicate system aliveness. */
+}
+
+void periodicLightSensorCallback(void)
 {
     alivenessLED = !alivenessLED; /* Do blinky on LED1 to indicate system aliveness. */
 }
@@ -54,14 +52,74 @@ void toggleLED(void)
 void onDataWrittenCallback(const GattWriteCallbackParams *params) {
     if ((params->handle == motorServicePtr->getDirectionHandle()) && (params->len >= 1)) {
         int direction = *(params->data);
-
-        pwm_b.write(motorSpeed);
-        gpio_b.write(0);
-        pwm_a.write(motorSpeed);
-        gpio_a.write(0);
+        
+        switch(direction){
+            case NORTH:
+                gpio_b.write(0);
+                gpio_a.write(0);
+                pwm_b.write(motorSpeed);
+                pwm_a.write(motorSpeed);
+                break;
+            case EAST:
+                gpio_b.write(0);
+                gpio_a.write(1);
+                pwm_b.write(motorSpeed);
+                pwm_a.write(motorSpeed);
+                break;
+            case SOUTH:
+                gpio_b.write(1);
+                gpio_a.write(1);
+                pwm_b.write(motorSpeed);
+                pwm_a.write(motorSpeed);
+                break;
+            case WEST:
+                gpio_b.write(1);
+                gpio_a.write(0);
+                pwm_b.write(motorSpeed);
+                pwm_a.write(motorSpeed);
+                break;
+            case NORTHEAST:
+                gpio_b.write(1);
+                pwm_b.write(motorSpeed);
+                pwm_a.write(0);
+                break;
+            case SOUTHEAST:
+                gpio_b.write(0);
+                pwm_b.write(motorSpeed);
+                pwm_a.write(0);
+                break;
+            case SOUTHWEST:
+                gpio_a.write(0);
+                pwm_a.write(motorSpeed);
+                pwm_b.write(0);
+                break;
+            case NORTHWEST:
+                gpio_a.write(1);
+                pwm_a.write(motorSpeed);
+                pwm_b.write(0);
+                break;
+            case STOP:
+                pwm_b.write(0);
+                pwm_a.write(0);
+                break;
+            default:  // Should not happen so call stop 
+                toggleLED();
+                pwm_b.write(0);
+                pwm_a.write(0);
+        }
   
     }else if((params->handle == motorServicePtr->getSpeedHandle()) && (params->len >= 1)){
-        motorSpeed = *(params->data);
+        motorSpeed = (*(params->data))/100.0; // data will be an an int from 0 to 100. Divide by 100.0 to get a float
+    }else if((params->handle == sensorServicePtr->getLEDHandle()) && (params->len == 1)){
+        int enable = *(params->data);
+
+        if enable == 1 {
+            ticker.attach(periodicCallback, seconds);
+        }else {
+            ticker.detach();
+        }
+    }else if((params->handle == sensorServicePtr->getLightHandle()) && (params->len == 1)){
+        int result = light_sensor.read_u16();
     }else{
         //Else an error occured, toggle LED and send message back to Android phone saying invalid message
         toggleLED();
@@ -102,8 +160,12 @@ void bleInitComplete(BLE::InitializationCompleteCallbackContext *params)
 
     int initialValueForMotorDirectionCharacteristic = 0;
     float initialValueForMotorSpeedCharacteristic = 0.0;
+    int initialValueForLEDToggle = 0;
+    int initialValueForLightLevels = 1;
     motorServicePtr = new MotorService(ble, initialValueForMotorDirectionCharacteristic,
         initialValueForMotorSpeedCharacteristic);
+    sensorServicePtr = new SensorService(ble, initialValueForLEDToggle,
+        initialValueForLightLevels);
 
     /* setup advertising */
     ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::BREDR_NOT_SUPPORTED | GapAdvertisingData::LE_GENERAL_DISCOVERABLE);
