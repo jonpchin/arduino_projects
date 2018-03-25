@@ -40,7 +40,7 @@ void toggleLED(void)
 
 void periodicLightSensorCallback(void)
 {
-    alivenessLED = !alivenessLED; /* Do blinky on LED1 to indicate system aliveness. */
+    updateLightLevel(light_sensor.read_u16());
 }
 
 /**
@@ -112,17 +112,15 @@ void onDataWrittenCallback(const GattWriteCallbackParams *params) {
         motorSpeed = (*(params->data))/100.0; // data will be an an int from 0 to 100. Divide by 100.0 to get a float
     }else if((params->handle == sensorServicePtr->getLEDHandle()) && (params->len == 1)){
         int enable = *(params->data);
-
+        toggleLED();
         if enable == 1 {
-            ticker.attach(periodicCallback, seconds);
+            ticker.attach(periodicCallback, 1);
         }else {
             ticker.detach();
         }
-    }else if((params->handle == sensorServicePtr->getLightHandle()) && (params->len == 1)){
-        int result = light_sensor.read_u16();
     }else{
         //Else an error occured, toggle LED and send message back to Android phone saying invalid message
-        toggleLED();
+        //toggleLED();
     }
 }
 
@@ -133,7 +131,7 @@ void onBleInitError(BLE &ble, ble_error_t error)
 {
     /* Initialization error handling should go here */
     // Turn LED to indicate an error has occured
-    toggleLED();
+    //toggleLED();
 }
 
 /**
@@ -158,9 +156,9 @@ void bleInitComplete(BLE::InitializationCompleteCallbackContext *params)
     ble.gap().onDisconnection(disconnectionCallback);
     ble.gattServer().onDataWritten(onDataWrittenCallback);
 
-    int initialValueForMotorDirectionCharacteristic = 0;
-    float initialValueForMotorSpeedCharacteristic = 0.0;
-    int initialValueForLEDToggle = 0;
+    uint8_t initialValueForMotorDirectionCharacteristic = 0;
+    uint8_t initialValueForMotorSpeedCharacteristic = 0;
+    uint8_t initialValueForLEDToggle = 0;
     int initialValueForLightLevels = 1;
     motorServicePtr = new MotorService(ble, initialValueForMotorDirectionCharacteristic,
         initialValueForMotorSpeedCharacteristic);
