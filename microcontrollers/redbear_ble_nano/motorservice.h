@@ -23,7 +23,7 @@ public:
     const static uint16_t MOTOR_DIRECTION_CHARACTERISTIC_UUID = 0xA001;
     const static uint16_t MOTOR_SPEED_CHARACTERISTIC_UUID     = 0xA002;
 
-    MotorService(BLEDevice &_ble, int initialValueForMotorDirectionCharacteristic, int initialValueForMotorSpeedCharacteristic) :
+    MotorService(BLEDevice &_ble, uint8_t initialValueForMotorDirectionCharacteristic, uint8_t initialValueForMotorSpeedCharacteristic) :
         ble(_ble), motorDirection(MOTOR_DIRECTION_CHARACTERISTIC_UUID, &initialValueForMotorDirectionCharacteristic),
         motorSpeed(MOTOR_SPEED_CHARACTERISTIC_UUID, &initialValueForMotorSpeedCharacteristic)
     {
@@ -42,8 +42,8 @@ public:
 
 private:
     BLEDevice                         &ble;
-    ReadWriteGattCharacteristic<int>  motorDirection;
-    ReadWriteGattCharacteristic<int>  motorSpeed; // Will divide by 100.0 to get float
+    ReadWriteGattCharacteristic<uint8_t>  motorDirection;
+    ReadWriteGattCharacteristic<uint8_t>  motorSpeed; // Will divide by 100.0 to get float
 };
 
 #endif /* #ifndef __BLE_MOTOR_SERVICE_H__ */

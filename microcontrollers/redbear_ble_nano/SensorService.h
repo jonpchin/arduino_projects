@@ -17,33 +17,37 @@
 #ifndef __BLE_SENSOR_SERVICE_H__
 #define __BLE_SENSOR_SERVICE_H__
 
+#include "ble/BLE.h"
+
 class SensorService {
 public:
     const static uint16_t SENSOR_SERVICE_UUID                = 0xA003;
     const static uint16_t LED_TOGGLE_CHARACTERISTIC_UUID     = 0xA004;
     const static uint16_t LIGHT_LEVELS_CHARACTERISTIC_UUID   = 0xA005;
 
-    SensorService(BLEDevice &_ble, int initialValueLEDToggleCharacteristic, int initialValueForLightLevelsCharacteristic) :
+    SensorService(BLEDevice &_ble, uint8_t initialValueLEDToggleCharacteristic, uint8_t initialValueForLightLevelsCharacteristic) :
         ble(_ble), ledToggle(LED_TOGGLE_CHARACTERISTIC_UUID, &initialValueLEDToggleCharacteristic),
-        lightLevels(LIGHT_LEVELS_CHARACTERISTIC_UUID, &initialValueForLightLevelsCharacteristic)
+        lightLevel(LIGHT_LEVELS_CHARACTERISTIC_UUID, &initialValueForLightLevelsCharacteristic)
     {
-        GattCharacteristic *charTable[] = {&ledToggle, &lightLevels};
+        GattCharacteristic *charTable[] = {&ledToggle, &lightLevel};
         GattService         sensorService(SENSOR_SERVICE_UUID, charTable, sizeof(charTable) / sizeof(GattCharacteristic *));
         ble.addService(sensorService);
     }
     
     GattAttribute::Handle_t getLEDHandle() const {
-        return LEDToggle.getValueHandle();
+        return ledToggle.getValueHandle();
     }
     
-    GattAttribute::Handle_t getLightHandle() const {
-        return lightLevel.getValueHandle();
+    void updateLightLevel(uint8_t level) {
+        newLevel = level;
+        ble.gattServer().write(lightLevel.getValueHandle(), &newLevel, 1);
     }
 
 private:
+    uint8_t newLevel;
     BLEDevice                         &ble;
-    ReadWriteGattCharacteristic<int>  LEDToggle;
-    ReadWriteGattCharacteristic<int>   lightLevel; // Will divide by 100.0 to get float
+    ReadWriteGattCharacteristic<uint8_t>  ledToggle;
+    ReadWriteGattCharacteristic<uint8_t>   lightLevel; // Will divide by 100.0 to get float
 };
 
-#endif /* #ifndef __BLE_MOTOR_SERVICE_H__ */
+#endif /* #ifndef __BLE_SENSOR_SERVICE_H__ */

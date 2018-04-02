@@ -11,11 +11,10 @@
 DigitalOut alivenessLED(LED1, 0);
 
 const static char     DEVICE_NAME[] = "Light Seeker";
-static const uint16_t uuid16_list[] = {MotorService::MOTOR_SERVICE_UUID};
+static const uint16_t uuid16_list[] = {MotorService::MOTOR_SERVICE_UUID, SensorService::SENSOR_SERVICE_UUID};
 
 MotorService *motorServicePtr;
-SensorService *sensorServiePtr;
-Ticker ticker;
+SensorService *sensorServicePtr;
 
 // PWM is speed and gpio controls direction, mode toggles PHASE/ENABLE or IN/IN
 mbed::PwmOut pwm_b(P0_8);
@@ -35,20 +34,9 @@ void disconnectionCallback(const Gap::DisconnectionCallbackParams_t *params)
 
 void toggleLED(void)
 {
-    alivenessLED = !alivenessLED; /* Do blinky on LED1 to indicate system aliveness. */
+    alivenessLED = !alivenessLED;
 }
 
-void periodicLightSensorCallback(void)
-{
-    updateLightLevel(light_sensor.read_u16());
-}
-
-/**
- * This callback allows the LEDService to receive updates to the ledState Characteristic.
- *
- * @param[in] params
- *     Information about the characterisitc being updated.
- */
 void onDataWrittenCallback(const GattWriteCallbackParams *params) {
     if ((params->handle == motorServicePtr->getDirectionHandle()) && (params->len >= 1)) {
         int direction = *(params->data);
@@ -103,7 +91,6 @@ void onDataWrittenCallback(const GattWriteCallbackParams *params) {
                 pwm_a.write(0);
                 break;
             default:  // Should not happen so call stop 
-                toggleLED();
                 pwm_b.write(0);
                 pwm_a.write(0);
         }
@@ -112,15 +99,13 @@ void onDataWrittenCallback(const GattWriteCallbackParams *params) {
         motorSpeed = (*(params->data))/100.0; // data will be an an int from 0 to 100. Divide by 100.0 to get a float
     }else if((params->handle == sensorServicePtr->getLEDHandle()) && (params->len == 1)){
         int enable = *(params->data);
-        toggleLED();
-        if enable == 1 {
-            ticker.attach(periodicCallback, 1);
-        }else {
-            ticker.detach();
+        if(enable == 1){
+            alivenessLED = 1;
+        }else{
+            alivenessLED = 0;
         }
-    }else{
-        //Else an error occured, toggle LED and send message back to Android phone saying invalid message
         //toggleLED();
+        sensorServicePtr->updateLightLevel(light_sensor.read_u16()/2);   
     }
 }
 
@@ -159,7 +144,7 @@ void bleInitComplete(BLE::InitializationCompleteCallbackContext *params)
     uint8_t initialValueForMotorDirectionCharacteristic = 0;
     uint8_t initialValueForMotorSpeedCharacteristic = 0;
     uint8_t initialValueForLEDToggle = 0;
-    int initialValueForLightLevels = 1;
+    uint8_t initialValueForLightLevels = 1;
     motorServicePtr = new MotorService(ble, initialValueForMotorDirectionCharacteristic,
         initialValueForMotorSpeedCharacteristic);
     sensorServicePtr = new SensorService(ble, initialValueForLEDToggle,
