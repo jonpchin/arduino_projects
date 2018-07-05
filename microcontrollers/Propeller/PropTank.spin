@@ -25,6 +25,7 @@ OBJ
   'HC-05
   pc_serial        : "FullDuplexSerial"
   bt_serial        : "FullDuplexSerial"
+  arduino_serial   : "FullDuplexSerial"  
   pwm_control      : "Pwm"
   motor            : "Tb6612fng"
   num              : "Numbers"
@@ -32,20 +33,24 @@ OBJ
 VAR
   byte pc_input[64]
   byte bt_input[64]
+  byte arduino_input[64] 
   byte pc_word[64]
   byte bt_word[64]
+  byte arduino_word[64]
 
-  
   long SqStack[32]                'Stack space for Square cog
+  long ArdStack[32]
   byte  CogIDPWMA                 'Stores the ID of new cog
   byte  CogIDPWMB                 'Stores the ID of new cog 
 PUB Main | i
   pc_serial.Start(31, 30, %0000, 9_600)
   bt_serial.Start(14, 15, %0000, 9_600)
-  
+  arduino_serial.Start(13, 12, %0000, 9_600)
+
   pc_word[0] := 0     
 
   cognew(Read_Bt_Input, @SqStack)   'Launch square cog
+  cognew(Read_Arduino_Input, @ArdStack)   'Launch square cog      
    
   repeat
     pc_input[0] := pc_serial.Rx
@@ -58,6 +63,17 @@ PUB Main | i
       pc_input[1] := 0
       bytemove(@pc_word + strsize(@pc_word),@pc_input,strsize(@pc_input)+1)
 
+PUB Read_Arduino_Input
+  arduino_word[0] := 0 
+  repeat
+    arduino_input[0] := arduino_serial.Rx
+    if arduino_input[0] == "!"
+
+      bt_serial.Str(@arduino_word)
+      arduino_word[0] := 0  
+    else
+      arduino_input[1] := 0
+      bytemove(@arduino_word + strsize(@arduino_word),@arduino_input,strsize(@arduino_input)+1)
 
 PUB Read_Bt_Input
   {{
