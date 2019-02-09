@@ -41,39 +41,29 @@ VAR
   long SqStack[32]                'Stack space for Square cog
   long ArdStack[32]
   byte  CogIDPWMA                 'Stores the ID of new cog
-  byte  CogIDPWMB                 'Stores the ID of new cog 
+  byte  CogIDPWMB                 'Stores the ID of new cog
+
+  long tempSpeed
+
+
 PUB Main | i
   pc_serial.Start(31, 30, %0000, 9_600)
   bt_serial.Start(14, 15, %0000, 9_600)
-  arduino_serial.Start(13, 12, %0000, 9_600)
 
   pc_word[0] := 0     
 
   cognew(Read_Bt_Input, @SqStack)   'Launch square cog
-  cognew(Read_Arduino_Input, @ArdStack)   'Launch square cog      
-   
+
   repeat
     pc_input[0] := pc_serial.Rx
     if pc_input[0] == "!"
-           
-      'pc_serial.Str(@pc_word)
+    
       bt_serial.Str(@pc_word)
       pc_word[0] := 0  
     else
       pc_input[1] := 0
       bytemove(@pc_word + strsize(@pc_word),@pc_input,strsize(@pc_input)+1)
 
-PUB Read_Arduino_Input
-  arduino_word[0] := 0 
-  repeat
-    arduino_input[0] := arduino_serial.Rx
-    if arduino_input[0] == "!"
-
-      bt_serial.Str(@arduino_word)
-      arduino_word[0] := 0  
-    else
-      arduino_input[1] := 0
-      bytemove(@arduino_word + strsize(@arduino_word),@arduino_input,strsize(@arduino_input)+1)
 
 PUB Read_Bt_Input
   {{
@@ -97,27 +87,44 @@ PUB Read_Bt_Input
   outa[AIN2] := 0
   outa[BIN2] := 0
  
-
   bt_word[0] := 0
+  tempSpeed := 0
    
   motor.init(AIN1, AIN2, PWMA, BIN1, BIN2, PWMB, STBY)
 
   repeat
-    bt_input[0] := bt_serial.Rx
+    bt_input[0] := bt_serial.Rx  
     if bt_input[0] == "!"
-      if strcomp(@bt_word, string("north"))
+      if strcomp(@bt_word, string("n"))
         motor.operateSync(motor#CMD_CW)
-      elseif strcomp(@bt_word, string("east"))
-        motor.operateAsync(motor#CMD_CW, motor#CMD_CCW) 
-      elseif strcomp(@bt_word, string("south"))
+        motor.setSpeedSync(tempSpeed)
+      elseif strcomp(@bt_word, string("e"))
+        motor.operateAsync(motor#CMD_CW, motor#CMD_CCW)
+        motor.setSpeedSync(tempSpeed)  
+      elseif strcomp(@bt_word, string("s"))
         motor.operateSync(motor#CMD_CCW)
-      elseif strcomp(@bt_word, string("west"))
+        motor.setSpeedSync(tempSpeed) 
+      elseif strcomp(@bt_word, string("w"))
         motor.operateAsync(motor#CMD_CCW, motor#CMD_CW)
-      elseif strcomp(@bt_word, string("stop"))
-        motor.operateSync(motor#CMD_STOP) 
+        motor.setSpeedSync(tempSpeed) 
+      elseif strcomp(@bt_word, string("h"))
+        motor.operateSync(motor#CMD_STOP)
+        motor.setSpeedSync(tempSpeed) 
+      elseif strcomp(@bt_word, string("ne"))
+        motor.operateSync(motor#CMD_CW)
+        motor.setSpeedAsync(tempSpeed, 0)
+      elseif strcomp(@bt_word, string("nw"))
+        motor.operateSync(motor#CMD_CW)
+        motor.setSpeedAsync(0, tempSpeed)
+      elseif strcomp(@bt_word, string("se"))
+       motor.operateSync(motor#CMD_CCW)
+       motor.setSpeedAsync(tempSpeed, 0)
+      elseif strcomp(@bt_word, string("sw"))
+       motor.operateSync(motor#CMD_CCW)
+       motor.setSpeedAsync(0, tempSpeed)
       bt_word[0] := 0
     elseif bt_input[0] == "@"
-      motor.setSpeedSync(num.FromStr(@bt_word, num#DEC))    
+      tempSpeed := num.FromStr(@bt_word, num#DEC)    
       bt_word[0] := 0
     else
       bt_input[1] := 0
