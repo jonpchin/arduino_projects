@@ -47,17 +47,16 @@ VAR
 
 
 PUB Main | i
-  pc_serial.Start(31, 30, %0000, 9_600)
-  bt_serial.Start(14, 15, %0000, 9_600)
+  pc_serial.Start(31, 30, %0000, 9_600)      ' rx, tx
+  bt_serial.Start(13, 15, %0000, 9_600)
 
   pc_word[0] := 0     
 
   cognew(Read_Bt_Input, @SqStack)   'Launch square cog
-
+      
   repeat
     pc_input[0] := pc_serial.Rx
     if pc_input[0] == "!"
-    
       bt_serial.Str(@pc_word)
       pc_word[0] := 0  
     else
@@ -96,14 +95,14 @@ PUB Read_Bt_Input
     bt_input[0] := bt_serial.Rx  
     if bt_input[0] == "!"
       if strcomp(@bt_word, string("n"))
-        motor.operateSync(motor#CMD_CW)
-        motor.setSpeedSync(tempSpeed)
+        motor.operateSync(motor#CMD_CCW)
+        motor.setSpeedSync(tempSpeed)  
       elseif strcomp(@bt_word, string("e"))
         motor.operateAsync(motor#CMD_CW, motor#CMD_CCW)
         motor.setSpeedSync(tempSpeed)  
       elseif strcomp(@bt_word, string("s"))
-        motor.operateSync(motor#CMD_CCW)
-        motor.setSpeedSync(tempSpeed) 
+        motor.operateSync(motor#CMD_CW)
+        motor.setSpeedSync(tempSpeed)  
       elseif strcomp(@bt_word, string("w"))
         motor.operateAsync(motor#CMD_CCW, motor#CMD_CW)
         motor.setSpeedSync(tempSpeed) 
@@ -111,17 +110,18 @@ PUB Read_Bt_Input
         motor.operateSync(motor#CMD_STOP)
         motor.setSpeedSync(tempSpeed) 
       elseif strcomp(@bt_word, string("ne"))
-        motor.operateSync(motor#CMD_CW)
-        motor.setSpeedAsync(tempSpeed, 0)
+        motor.operateSync(motor#CMD_CCW)
+        motor.setSpeedAsync(0, tempSpeed)
       elseif strcomp(@bt_word, string("nw"))
+        motor.operateSync(motor#CMD_CCW)
+        motor.setSpeedAsync(tempSpeed, 0) 
+      elseif strcomp(@bt_word, string("se"))
         motor.operateSync(motor#CMD_CW)
         motor.setSpeedAsync(0, tempSpeed)
-      elseif strcomp(@bt_word, string("se"))
-       motor.operateSync(motor#CMD_CCW)
-       motor.setSpeedAsync(tempSpeed, 0)
       elseif strcomp(@bt_word, string("sw"))
-       motor.operateSync(motor#CMD_CCW)
-       motor.setSpeedAsync(0, tempSpeed)
+        motor.operateSync(motor#CMD_CW)
+        motor.setSpeedAsync(tempSpeed, 0)
+       
       bt_word[0] := 0
     elseif bt_input[0] == "@"
       tempSpeed := num.FromStr(@bt_word, num#DEC)    
